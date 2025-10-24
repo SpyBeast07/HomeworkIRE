@@ -26,26 +26,26 @@ class Optimizations(Enum):
     Skipping = 'sp'
     Thresholding = 'th'
     EarlyStopping = 'es'
-  
+
 class IndexBase(ABC):
     """
     Base index class with abstract methods to inherit for specific implementations.
     """
     def __init__(self, core, info, dstore, qproc, compr, optim):
-      """
-      Sample usage:
-          idx = IndexBase(core='ESIndex', info='BOOLEAN', dstore='DB1', compr='NONE', qproc='TERMatat', optim='Null')
-          print (idx)
-      """
-      assert core in ('ESIndex', 'SelfIndex')
-      long = [ IndexInfo[info], DataStore[dstore], Compression[compr], QueryProc[qproc], Optimizations[optim] ]
-      short = [k.value for k in long]
-      self.identifier_long = "core={}|index={}|datastore={}|compressor={}|qproc={}|optim={}".format(*[core]+long)
-      self.identifier_short = "{}_i{}d{}c{}q{}o{}".format(*[core]+short)
+        """
+        Sample usage:
+            idx = IndexBase(core='ESIndex', info='BOOLEAN', dstore='DB1', compr='NONE', qproc='TERMatat', optim='Null')
+            print (idx)
+        """
+        assert core in ('ESIndex', 'SelfIndex')
+        long = [ IndexInfo[info], DataStore[dstore], Compression[compr], QueryProc[qproc], Optimizations[optim] ]
+        short = [k.value for k in long]
+        self.identifier_long = "core={}|index={}|datastore={}|compressor={}|qproc={}|optim={}".format(*[core]+long)
+        self.identifier_short = "{}_i{}d{}c{}q{}o{}".format(*[core]+short)
         
     def __repr__(self):
         return f"{self.identifier_short}: {self.identifier_long}"
-      
+
     @abstractmethod
     def create_index(index_id: str, files: Iterable[tuple[str, str]]) -> None: 
         """Creates and index for the given files
@@ -92,13 +92,13 @@ class IndexBase(ABC):
             results: Output json str with results
         """
         pass
-  
+
     @abstractmethod
     def delete_index(index_id: str) -> None:
         """Deletes the index with the given index_id."""
         # Remove index files from disk
         pass
-  
+
     @abstractmethod
     def list_indices() -> Iterable[str]:
         """Lists all indices.
@@ -107,7 +107,7 @@ class IndexBase(ABC):
             An iterable (list) of index ids.
         """
         pass
-  
+
     @abstractmethod
     def list_indexed_files(index_id: str) -> Iterable[str]:
         """Lists all files indexed in the given index.

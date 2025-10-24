@@ -1,3 +1,6 @@
 .DS_Store
+
 indexing_and_retrieval/data/*
 !indexing_and_retrieval/data/nltk_data
+
+my_index_storage/
