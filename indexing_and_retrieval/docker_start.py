@@ -102,3 +102,6 @@ if __name__ == "__main__":
 
 # # Test:
 # curl -k http://localhost:9200
+
+# For Redis database, run:
+# docker run -d -p 6379:6379 --name my-redis-server redis
