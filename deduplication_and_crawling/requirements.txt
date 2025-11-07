@@ -1,0 +1,8 @@
+pandas
+recordlinkage
+jellyfish
+networkx
+scikit-learn
+requests
+beautifulsoup4
+jupyter
