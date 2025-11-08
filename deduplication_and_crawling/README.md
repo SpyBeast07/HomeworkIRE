@@ -166,16 +166,22 @@ Pipeline used:
 ## Activity 2.2: Crawling Summary
 
 ### Goal
-To crawl the local web server, calculate PageRank, and create an efficient update strategy.
+To crawl a local web server, calculate PageRank, and efficiently update node IDs, submitting all findings to an `/evaluate` endpoint within a **60-second time limit**.
 
 ### Approach
+The new evaluation criteria required a shift from a multi-step process to a single, high-speed asynchronous "bot".
 
-* **Discovery & Parsing:** Found that the server only responds with HTML. Used `BeautifulSoup` to parse the HTML and scrape the `page_id`, `node_id`, and outgoing links.
-* **Crawling:** Wrote a crawler (using a Breadth-First Search) to visit every page, discovering a total of **14 unique pages**.
-* **PageRank:** Used `networkx` to build a directed graph of the 14 pages and calculated the PageRank score for each.
-* **Efficient Updates:** Analyzed the `history` of node ID changes for each page to calculate the average time between updates. Combined this "change frequency" score with the PageRank score to create a final `revisit_priority` score.
+* **Asynchronous Bot:** I built a new bot using `asyncio` and `aiohttp` to handle the strict 60-second time limit and 15-second evaluation rules.
+* **Parallel Tasks:** The bot was designed to run two tasks at the same time:
+    1.  **Task 1 (Continuous Crawler):** A crawler that runs in a non-stop loop. It discovers new pages and **continuously re-crawls** all known pages to ensure the `node_id`s are kept as fresh as possible.
+    2.  **Task 2 (Periodic Evaluator):** A scheduler that wakes up every 14.5 seconds. It calculates the PageRank of the graph (as known at that moment) and `POST`s the full results to the `/evaluate` endpoint.
+* **HTML Parsing:** The server did not have a JSON API, so I re-used my `BeautifulSoup` parsing logic to scrape the `page_id`, `node_id`, and outgoing links from the raw HTML.
 
 ### Key Results
+The bot ran successfully and passed the evaluation.
 
-* **PageRank:** Successfully calculated the importance of all 14 pages.
-* **Final Strategy:** Produced a prioritized table of all pages. Pages that are **both important (high PageRank) and change often (high "freshness")** are at the top. This table provides the exact strategy to update node IDs efficiently while minimizing server visits.
+* **Insight from Evaluation:** The server's response (which omitted `avg_staleness`) revealed that this test version was primarily grading `coverage` and `mse` (PageRank accuracy). My "continuous re-crawl" strategy was highly effective for this.
+* **Met All Rules:** The bot successfully ran for the 60-second window and submitted 4 valid evaluations (at 14.70s, 29.23s, 43.76s, and 58.27s).
+* **Final Score:** The final valid evaluation report at 58.27s showed excellent results:
+    * **Excellent Coverage:** The bot discovered **18 out of 19** total pages (**94.7% coverage**).
+    * **Perfect PageRank:** The bot achieved a Mean Squared Error (MSE) of **2.022e-06**. Since 0.0 is a perfect score, this means the PageRank calculation was extremely accurate.
