@@ -7,3 +7,4 @@ requests
 beautifulsoup4
 jupyter
 aiohttp
+nest_asyncio

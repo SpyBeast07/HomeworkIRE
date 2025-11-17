@@ -1,61 +1,71 @@
 #!/bin/bash
 #
-# A script to safely start the crawling_assignment container.
+# Updated script to safely start the crawling_assignment 1.2 server.
 #
-# 1. If 'crawling_server' is running, does nothing.
-# 2. If 'crawling_server' is stopped, starts it.
-# 3. If 'crawling_server' doesn't exist, it checks for the image.
-# 4. If the image is missing, it loads it from the .tar file.
-# 5. Finally, it runs a new container.
+# - Automatically loads crawling_assignment-1.2-amd64.tar if image not found.
+# - Verifies checksum.
+# - Runs container with required security flags & data volume.
+# - Reuses running/stopped containers named 'crawling_server'.
 #
 
-set -e # Exit immediately if any command fails
+set -e  # Exit on any error
 
 # --- Configuration ---
 CONTAINER_NAME="crawling_server"
-IMAGE_NAME="crawling_assignment:1.0"
-TAR_FILE="crawling_assignment-1.0-amd64.tar"
+IMAGE_NAME="crawling_assignment:1.2"
+TAR_FILE="crawling_assignment-1.2-amd64.tar"
 CHECKSUM_FILE="${TAR_FILE}.sha256"
 
-# 1. Check if container is running
+# Make sure the data folder exists
+mkdir -p data
+chmod 777 data
+
+echo "=== Starting Crawling Assignment Server (v1.2) ==="
+
+# 1. Check if container is already running
 if [ "$(docker ps -f "name=^/${CONTAINER_NAME}$" --format '{{.Names}}')" == "${CONTAINER_NAME}" ]; then
     echo "Container '${CONTAINER_NAME}' is already running."
     exit 0
 fi
 
-# 2. Check if container is stopped (but exists)
+# 2. If container exists but is stopped → start it
 if [ "$(docker ps -a -f "name=^/${CONTAINER_NAME}$" --format '{{.Names}}')" == "${CONTAINER_NAME}" ]; then
-    echo "Container '${CONTAINER_NAME}' is stopped. Starting..."
+    echo "Container '${CONTAINER_NAME}' exists but is stopped. Starting..."
     docker start "${CONTAINER_NAME}"
     exit 0
 fi
 
-# 3. Container doesn't exist. Check for the image.
+# 3. No container exists → check if image exists
 if [ -z "$(docker images -q ${IMAGE_NAME})" ]; then
     echo "Image '${IMAGE_NAME}' not found."
-    
+
+    # Ensure tar file exists
     if [ ! -f "${TAR_FILE}" ]; then
-        echo "Error: ${TAR_FILE} not found. Cannot load image." >&2
+        echo "ERROR: ${TAR_FILE} not found. Cannot load Docker image."
         exit 1
     fi
 
-    # 4. Verify and load the image
+    # Verify checksum if available
     if [ -f "${CHECKSUM_FILE}" ]; then
-        echo "Verifying image from ${CHECKSUM_FILE}..."
+        echo "Verifying image checksum..."
         sha256sum -c "${CHECKSUM_FILE}"
     else
-        echo "Warning: ${CHECKSUM_FILE} not found. Skipping verification."
+        echo "WARNING: ${CHECKSUM_FILE} missing. Skipping checksum verification."
     fi
-    
+
+    # Load image
     echo "Loading image from ${TAR_FILE}..."
     docker load -i "${TAR_FILE}"
 fi
 
-# 5. Image exists, container doesn't. Run a new one.
-echo "Starting new container '${CONTAINER_NAME}'..."
-docker run -d --name "${CONTAINER_NAME}" \
+# 4. Run new container
+echo "Running a new container '${CONTAINER_NAME}'..."
+
+docker run -d \
+  --name "${CONTAINER_NAME}" \
+  --rm \
   -p 3000:3000 \
-  --read-only \
+  -v "$(pwd)/data:/data" \
   --tmpfs /tmp:rw,noexec,nosuid \
   --cap-drop ALL \
   --security-opt no-new-privileges \
@@ -63,4 +73,5 @@ docker run -d --name "${CONTAINER_NAME}" \
   --memory 256m \
   "${IMAGE_NAME}"
 
-echo "Container started successfully."
+echo "Container '${CONTAINER_NAME}' started successfully!"
+echo "Server running at: http://localhost:3000"
